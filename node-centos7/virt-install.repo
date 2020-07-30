@@ -1,0 +1,5 @@
+[virt-install]
+name=virt-install
+baseurl=file:///virt-install
+gpgcheck=0
+enabled=1

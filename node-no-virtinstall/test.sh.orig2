@@ -1,0 +1,32 @@
+#!/bin/bash
+
+if [ "${DISTRO}" = 'centos7' ]; then
+    MOCK_CFG='epel-7-x86_64'
+    DIST_TAG='el7'
+    GEMFILE_LOCK='CentOS7'
+elif [ "${DISTRO}" = 'centos8' ]; then
+    MOCK_CFG='epel-8-x86_64'
+    DIST_TAG='el8'
+    GEMFILE_LOCK='CentOS8'
+else
+    echo "ERROR: Invalid target '${DISTRO}'" >&2
+    exit 1
+fi
+VERSION=5.10.4
+URL="opennebula-$VERSION.tar.gz"
+PKG_VERSION=$VERSION
+SPEC="${DISTRO}.spec"
+BUILD_DIR=$(mktemp -d)
+BUILD_DIR_SPKG=$(mktemp -d)
+MOCK_DIR_GEMS=$(mktemp -d)
+PACKAGES_DIR=/packages-$VERSION
+SOURCES_DIR="${PACKAGES_DIR}/sources"
+SOURCE=$(basename "${URL}")
+PACKAGE=opennebula-$VERSION
+NAME=$(echo "${PACKAGE}" | cut -d'-' -f1) # opennebula
+VERSION=$(echo "${PACKAGE}" |cut -d'-' -f2) # 1.9.90
+CONTACT=${CONTACT:-Unsupported Community Build}
+BASE_NAME="${NAME}-${VERSION}-${PKG_VERSION}"
+GEMS_RELEASE="${VERSION}_${PKG_VERSION}.${DIST_TAG}"
+GIT_VERSION=${GIT_VERSION:-not known}
+DATE=$(date +'%a %b %d %Y')

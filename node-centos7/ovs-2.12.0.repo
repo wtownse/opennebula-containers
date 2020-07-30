@@ -1,0 +1,5 @@
+[ovs-2.12.0]
+name=ovs-2.12.0
+baseurl=file:///ovs-2.12.0
+gpgcheck=0
+enabled=1
