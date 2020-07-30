@@ -1,0 +1,93 @@
+version: '3.3'
+services:
+  one-libvirt:
+    container_name: "opennebula-node-5.10.4"
+    image: opennebula-node-5.10.4-centos7
+    privileged: true
+    volumes:
+      - /:/host:Z
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
+      - /var/run/libvirt:/var/run/libvirt
+      - /var/run/openvswitch:/var/run/openvswitch:z
+      - /usr/libexec:/host-libexec
+      - /dev:/host-dev
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - /var/lib/libvirt:/var/lib/libvirt:rw
+      - /var/tmp/one:/var/tmp/one
+      - /proc:/proc
+      - /usr/lib/one:/usr/lib/one
+      - /var/lib/one:/var/lib/one:z
+      - /etc/libvirt:/etc/libvirt
+    network_mode: "host"
+    pid: "host"
+    ipc: "host"
+  opennebula-server:
+    container_name: "opennebula-server-5.10.4"
+    image: opennebula-server-5.10.4-centos7
+    privileged: true
+    volumes:
+      - /var/lib/one:/var/lib/one:z
+      - /usr/lib/one:/usr/lib/one:z
+      - /usr/share/one:/usr/share/one:z
+      - /var/log/one:/var/log/one:z
+    environment:
+      ONEPASSWORD: opennebula
+    ports:
+      - 2633
+    depends_on:
+      - opennebula-mariadb
+    network_mode: "host"
+  opennebula-sunstone:
+    container_name: "opennebula-sunstone-5.10.4"
+    image: opennebula-sunstone-5.10.4-centos7
+    volumes:
+      - /var/lib/one:/var/lib/one:z
+      - /usr/lib/one:/usr/lib/one:z
+      - /usr/share/one:/usr/share/one:z
+      - /usr/sbin/logrotate:/usr/sbin/logrotate
+      - /var/log/one:/var/log/one:z
+    environment:
+      SUNSTONE_OPENNEBULA_ENDPOINT: http://localhost:2633/RPC2
+      SUNSTONE_PORT: 9869
+      SUNSTONE_MEMCACHE: localhost
+      SUNSTONE_MEMCACHE_PORT: 11211
+      SUNSTONE_ONEFLOW_ENDPOINT: http://localhost:2474
+      ONEPASSWORD: opennebula
+    depends_on:
+      - memcached
+      - opennebula-oneflow
+      - opennebula-server
+    ports:
+      - '9869:9869'
+    network_mode: "host"
+  memcached:
+    container_name: "opennebula-memcached"
+    image: memcached:latest
+    network_mode: "host"
+  opennebula-mariadb:
+    container_name: "opennebula-db"
+    image: mariadb
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+      MYSQL_DATABASE: "opennebula"
+      MYSQL_USER: "oneadmin"
+      MYSQL_PASSWORD: "oneadmin"
+    ports:
+      - 3306
+    volumes:
+      - /var/lib/one/db:/var/lib/mysql
+    network_mode: "host"
+  opennebula-oneflow:
+    container_name: "opennebula-oneflow-5.10.4"
+    image: opennebula-oneflow-5.10.4-centos7
+    depends_on:
+      - memcached
+      - opennebula-server
+    volumes:
+      - /var/lib/one:/var/lib/one
+    ports:
+      - 2474
+    network_mode: "host"
+    environment:
+      ONEFLOW_OPENNEBULA_ENDPOINT: http://localhost:2633/RPC2
+      ONEPASSWORD: opennebula
