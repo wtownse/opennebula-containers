@@ -1,5 +1,5 @@
 # opennebula-containers
-Contains docker build files for containerizing system controller components.
+Contains docker build files for containerizing system controller components.  This example is for use with docker-compose.
 
 Requires:
 
