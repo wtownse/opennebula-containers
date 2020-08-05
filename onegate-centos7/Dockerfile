@@ -207,6 +207,6 @@ RUN chmod +x docker-entrypoint.sh && chmod +x wait-for-it.sh
 RUN sed -i 's|^\(ONEFLOW_LOG *=\).*|\1 "/dev/stdout"|' /usr/lib/one/onegate/onegate-server.rb
 EXPOSE 5030
 #USER oneadmin
-ENTRYPOINT ["/bin/bash"]
-#ENTRYPOINT ["./docker-entrypoint.sh"]
+#ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
 
