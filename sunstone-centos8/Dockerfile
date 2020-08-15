@@ -156,7 +156,8 @@ RUN mkdir -p /data/allrpms && find / -path /proc -prune -o -iname "opennebula*.r
 
 ##FROM drecom/centos-ruby
 
-FROM centos:8
+#FROM 172.16.130.67:5000/drecom-ruby25-centos8
+FROM 172.16.130.67:5000/opennebula-ruby2.5.5
 
 ARG RUBY_VERSION=25
 ENV RUBY_VERSION=${RUBY_VERSION}
@@ -182,32 +183,26 @@ RUN yum -y install createrepo && cd /allrpms && createrepo . \
 && echo "gpgcheck=0" >> /etc/yum.repos.d/opennebula5.10.4.repo \
 && echo "enabled=1" >> /etc/yum.repos.d/opennebula5.10.4.repo
 RUN yum -y install epel-release && yum -y update && yum -y install opennebula-sunstone \
-opennebula-common* opennebula-rubygem-* \
-&& yum -y install opennebula-rubygem* \
-#&& rm -rf /allrpms && rm /etc/yum.repos.d/opennebula5.10.4.repo \
-&& rm -rf /allrpms && yum -y erase epel-release
-#&& yum -y erase createrepo && yum -y clean all
+opennebula-common* opennebula-rubygem-*
+RUN rm /etc/yum.repos.d/opennebula5.10.4.repo \
+&& yum -y erase epel-release \
+&& yum -y erase createrepo \
+&& yum -y erase centos-release-scl \
+&& yum -y clean all
 
  
 RUN yum install -y gcc-c++ libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
-    mysql-devel sqlite-devel pkgconfig python3-scons sqlite-devel xmlrpc-c \
-    make npm git augeas augeas-libs which m4 ruby ruby-devel rpm-build zlib-devel
+    ruby-devel mysql-devel sqlite-devel pkgconfig python3-scons sqlite-devel xmlrpc-c \
+    make git augeas augeas-libs which m4
 
 RUN ruby --version \
  && gem --version \
  && gem install bundler
-
-RUN gem install rqrcode rotp dalli ipaddress rbvmomi nokogiri sinatra
-
-RUN rm /etc/yum.repos.d/opennebula5.10.4.repo \
- && yum -y erase epel-release \
- && yum -y erase centos-release-scl \
- && yum -y erase createrepo \
- && yum -y clean all
-
-RUN yum autoremove -y libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
-    mysql-devel sqlite-devel sqlite-devel \
-    make npm git which m4 ruby-devel
+#RUN /usr/bin/cp -rf  /opt/rh/rh-ruby${RUBY_VERSION}/root/* /
+RUN gem install rqrcode rotp dalli ipaddress rbvmomi nokogiri sinatra xmlrpc
+#RUN yum autoremove -y libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
+#    mysql-devel sqlite-devel sqlite-devel \
+#    make npm git which m4 ruby-devel
 
 # -------------------------------------------------------------------------------
 # Configuration
@@ -217,15 +212,18 @@ COPY create-conf.sh ./create-conf.sh
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 COPY wait-for-it.sh ./wait-for-it.sh
 COPY sunstone.sh ./sunstone.sh
-RUN chmod +x docker-entrypoint.sh && mkdir /init && mkdir /conf && cp -rf /etc/one/* /conf/ && mkdir /share && cp -rf /usr/share/one/* /share \
-&& cp -rf /var/lib/one /init/ && cp -rf /var/lib/one/.one /init/one/ && chmod +x wait-for-it.sh && chmod +x sunstone.sh \
-&& chown -R oneadmin /init && chown -R oneadmin /conf \
-&& chown -R oneadmin /var/lib/one && chown -R oneadmin /etc/one
+COPY vncproxy.sh ./vncproxy.sh
+RUN chmod +x docker-entrypoint.sh && mkdir /var_lib_one && mkdir /conf && cp -rf /etc/one/* /conf/ && mkdir /usr_share_one \
+&& cp -rf /usr/share/one/* /usr_share_one/ && mkdir /usr_lib_one && cp -rf /usr/lib/one/* /usr_lib_one/ \
+&& cp -rf /var/lib/one/* /var_lib_one/ && cp -rf /var/lib/one/.one /var_lib_one/ && chmod +x wait-for-it.sh && chmod +x sunstone.sh \
+&& chown -R oneadmin /var_lib_one && chown -R oneadmin /usr_lib_one && chown -R oneadmin /usr_share_one && chown -R oneadmin /conf \
+&& chown -R oneadmin /var/lib/one && chown -R oneadmin /etc/one && chmod +x vncproxy.sh
 
 # Logging to /dev/stdout, do not daemonize novnc-server
 RUN sed -i 's|^\(SUNSTONE_LOG *=\).*|\1 "/dev/stdout"|' /usr/lib/one/sunstone/sunstone-server.rb \
 && sed -i 's|^\(VNC_LOG *=\).*|\1 "/dev/stdout"|' /usr/bin/novnc-server \
-&& sed -i '/cmd *=/a\ exec(cmd)' /usr/lib/one/ruby/OpenNebulaVNC.rb
+&& sed -i '/cmd *=/a\ exec(cmd)' /usr/lib/one/ruby/OpenNebulaVNC.rb \
+&& ln -s /usr/bin/python3 /usr/bin/python
 EXPOSE 9869
 EXPOSE 29876
 #ENTRYPOINT [ "/bin/bash" ]

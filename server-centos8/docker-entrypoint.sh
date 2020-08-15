@@ -1,8 +1,10 @@
 #!/bin/bash
 
 if [ ! -f /var/lib/one/init.one ]; then
-  cp -rf /init/one /var/lib/
-  cp -rf /init/one/.one /var/lib/one/.one
+  cp -rf /var_lib_one/one /var/lib/
+  cp -rf /var_lib_one/one/.one /var/lib/one/.one
+  cp -rf /usr_lib_one/* /usr/lib/one/
+  cp -rf /usr_share_one/* /usr/share/one/
   cp -rf /conf/* /etc/one/
   source ./create-conf.sh
   echo "initialized" > /var/lib/one/init.one

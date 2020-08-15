@@ -156,7 +156,7 @@ RUN mkdir -p /data/allrpms && find / -path /proc -prune -o -iname "opennebula*.r
 
 ##FROM drecom/centos-ruby
 
-FROM centos:8
+FROM drecom-ruby-centos8
 
 ARG RUBY_VERSION=25
 ENV RUBY_VERSION=${RUBY_VERSION}
@@ -203,9 +203,10 @@ RUN rm /etc/yum.repos.d/opennebula5.10.4.repo \
  && yum -y erase createrepo \
  && yum -y clean all
 
-RUN yum autoremove -y libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
-    mysql-devel sqlite-devel sqlite-devel \
-    make npm git which m4 ruby-devel
+
+#RUN yum autoremove -y libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
+#    mysql-devel sqlite-devel sqlite-devel \
+#    make npm git which m4 ruby-devel
 
 # -------------------------------------------------------------------------------
 # Configuration

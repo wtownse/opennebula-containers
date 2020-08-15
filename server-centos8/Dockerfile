@@ -156,8 +156,8 @@ RUN mkdir -p /data/allrpms && find / -path /proc -prune -o -iname "opennebula*.r
 
 ##FROM drecom/centos-ruby
 
-FROM centos:8
-
+#FROM 172.16.130.67:5000/drecom-ruby25-centos8
+FROM 172.16.130.67:5000/opennebula-ruby2.5.5
 ARG RUBY_VERSION=25
 ENV RUBY_VERSION=${RUBY_VERSION}
 
@@ -191,16 +191,16 @@ opennebula-common opennebula-ruby \
  
 RUN yum install -y gcc-c++ libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
     mysql-devel sqlite-devel pkgconfig python3-scons sqlite-devel xmlrpc-c \
-    make npm git augeas augeas-libs which m4 ruby ruby-devel rpm-build zlib-devel
+    make git augeas augeas-libs which m4 ruby ruby-devel rpm-build zlib-devel
 
 RUN ruby --version \
  && gem --version \
  && gem install bundler
 
-#RUN gem install ffi ffi-rzmq nokogiri
-RUN ["/bin/bash","-c","gem install ffi"]
-RUN ["/bin/bash","-c","gem install ffi-rzmq"]
-RUN ["/bin/bash","-c","gem install nokogiri"]
+RUN gem install ffi ffi-rzmq nokogiri xmlrpc
+#RUN ["/bin/bash","-c","gem install ffi"]
+#RUN ["/bin/bash","-c","gem install ffi-rzmq"]
+#RUN ["/bin/bash","-c","gem install nokogiri"]
 
 
 RUN rm /etc/yum.repos.d/opennebula5.10.4.repo \
@@ -209,9 +209,13 @@ RUN rm /etc/yum.repos.d/opennebula5.10.4.repo \
  && yum -y erase createrepo \
  && yum -y clean all
 
-RUN yum autoremove -y libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
-    mysql-devel sqlite-devel sqlite-devel \
-    make npm git which m4 ruby-devel
+#RUN yum install -y gcc-c++ libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
+#    mysql-devel sqlite-devel pkgconfig scons sqlite-devel xmlrpc-c \
+#    make npm git augeas augeas-libs which m4
+
+#RUN yum autoremove -y libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
+#    mysql-devel sqlite-devel sqlite-devel \
+#    make npm git which m4 ruby-devel
 
 # -------------------------------------------------------------------------------
 # Configuration
@@ -221,18 +225,20 @@ COPY docker-entrypoint.sh ./docker-entrypoint.sh
 COPY oned.conf /etc/one/oned.conf
 COPY wait-for-it.sh ./wait-for-it.sh
 COPY one.sh ./one.sh
-RUN for l in oned sched onehem novnc; do ln -sf "/proc/1/fd/1" "/var/log/one/$l.log"; done
 RUN chmod +x docker-entrypoint.sh && chmod +x wait-for-it.sh \
-&& chmod +x one.sh && mkdir /conf && mkdir /init \
-&& cp -rf /etc/one /conf/ && cp -rf /var/lib/one /init/ && cp -rf /var/lib/one/.one /init/one/ \
-&& chown -R oneadmin:oneadmin /init \
+&& chmod +x one.sh && mkdir /conf && mkdir /var_lib_one \
+&& cp -rf /etc/one /conf/ && cp -rf /var/lib/one /var_lib_one/ && cp -rf /var/lib/one/.one /var_lib_one/one/ \
+&& mkdir /usr_share_one && cp -rf /usr/share/one/* /usr_share_one/ && mkdir /usr_lib_one && cp -rf /usr/lib/one/* /usr_lib_one/ \
+&& chown -R oneadmin:oneadmin /usr_lib_one \
+&& chown -R oneadmin:oneadmin /var_lib_one \
+&& chown -R oneadmin:oneadmin /usr_share_one \
 && chown -R oneadmin:oneadmin /var/lib/one \
 && chown -R oneadmin:oneadmin /usr/lib/one \
+&& chown -R oneadmin:oneadmin /usr/share/one \
 && chown -R oneadmin:oneadmin /conf \
 && chown -R oneadmin:oneadmin /etc/one
 EXPOSE 2633
 USER oneadmin
-VOLUME ["/usr/lib/one"]
 ENTRYPOINT ["./docker-entrypoint.sh"]
 #ENTRYPOINT ["/bin/bash"]
 #ENTRYPOINT [ "/usr/lib/one/onehem/onehem-server.rb" ]

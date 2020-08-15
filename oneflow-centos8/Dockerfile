@@ -156,8 +156,8 @@ RUN mkdir -p /data/allrpms && find / -path /proc -prune -o -iname "opennebula*.r
 
 ##FROM drecom/centos-ruby
 
-FROM centos:8
-
+#FROM drecom-ruby-centos8
+FROM 172.16.130.67:5000/opennebula-ruby2.5.5
 ARG RUBY_VERSION=25
 ENV RUBY_VERSION=${RUBY_VERSION}
 
@@ -190,13 +190,13 @@ RUN yum -y install epel-release && yum -y update && yum -y install opennebula-fl
  
 RUN yum install -y gcc-c++ libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
     mysql-devel sqlite-devel pkgconfig python3-scons sqlite-devel xmlrpc-c \
-    make npm git augeas augeas-libs which m4 ruby ruby-devel rpm-build zlib-devel
+    make git augeas augeas-libs which m4 ruby ruby-devel rpm-build zlib-devel
 
 RUN ruby --version \
  && gem --version \
  && gem install bundler
 
-RUN gem install sinatra nokogiri treetop parse-cron
+RUN gem install sinatra nokogiri treetop parse-cron xmlrpc
 
 RUN rm /etc/yum.repos.d/opennebula5.10.4.repo \
  && yum -y erase epel-release \
@@ -204,9 +204,9 @@ RUN rm /etc/yum.repos.d/opennebula5.10.4.repo \
  && yum -y erase createrepo \
  && yum -y clean all
 
-RUN yum autoremove -y libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
-    mysql-devel sqlite-devel sqlite-devel \
-    make npm git which m4 ruby-devel
+#RUN yum autoremove -y libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
+#    mysql-devel sqlite-devel sqlite-devel \
+#    make npm git which m4 ruby-devel
 
 # -------------------------------------------------------------------------------
 # Configuration

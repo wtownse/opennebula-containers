@@ -221,7 +221,7 @@ RUN chmod +x docker-entrypoint.sh && chmod +x wait-for-it.sh \
 && chown -R oneadmin:oneadmin /etc/one
 EXPOSE 2633
 USER oneadmin
-VOLUME ["/usr/lib/one"]
+#VOLUME ["/usr/lib/one"]
 ENTRYPOINT ["./docker-entrypoint.sh"]
 #ENTRYPOINT ["/bin/bash"]
 #ENTRYPOINT [ "/usr/lib/one/onehem/onehem-server.rb" ]
