@@ -2,31 +2,18 @@
 #
 # VERSION               0.0.1
 
-FROM     centos:8
+ARG RUBY_PATH=/usr
+ARG RUBY_VERSION=2.5.5
+ARG RUBY_CONFIGURE_OPTS=--with-jemalloc
 
-MAINTAINER Drecom Technical Development Department "pr_itn@drecom.co.jp"
+FROM centos:8 as base
 
-#RUN rpm -ivh http://ftp.iij.ad.jp/pub/linux/fedora/epel/6/x86_64/epel-release-6-8.noarch.rpm
-RUN dnf install -y epel-release && dnf install -y 'dnf-command(config-manager)' && dnf config-manager --set-enabled PowerTools
-RUN yum install -y \
-    openssl-devel \
-    readline-devel\
-    zlib-devel \
-    wget \
-    curl \
-    git \
-#    dtach \
-    vim \
-#    hash-slinger \
-    bzip2 \
-    tar \
-    ImageMagick \
-    ImageMagick-devel \
-    libffi-devel \
-    mysql \
-    mysql-devel \
-    libxslt-devel \
-    redis \
+RUN dnf install -y epel-release && dnf install -y 'dnf-command(config-manager)' \
+&& dnf config-manager --set-enabled PowerTools
+
+RUN yum install -y openssl-devel readline-devel zlib-devel \
+    wget curl git vim bzip2 tar ImageMagick ImageMagick-devel \
+    libffi-devel mysql mysql-devel libxslt-devel redis \
     python3 \
 &&  yum groupinstall "Development Tools" -y \
 &&  yum clean all
@@ -59,3 +46,35 @@ ENV DOCKERIZE_VERSION v0.6.0
 RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
 &&  tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
 &&  rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+
+FROM base AS rubybuild
+ARG RUBY_PATH
+ARG RUBY_VERSION
+ARG RUBY_CONFIGURE_OPTS
+RUN git clone git://github.com/rbenv/ruby-build.git $RUBY_PATH/plugins/ruby-build \
+&&  $RUBY_PATH/plugins/ruby-build/install.sh
+RUN yum -y install jemalloc-devel
+RUN RUBY_CONFIGURE_OPTS=$RUBY_CONFIGURE_OPTS ruby-build $RUBY_VERSION $RUBY_PATH/
+
+FROM centos:8
+ARG RUBY_PATH
+ENV PATH $RUBY_PATH/bin:$PATH
+RUN dnf install -y epel-release \
+&& dnf install -y 'dnf-command(config-manager)' \
+&& dnf config-manager --set-enabled PowerTools
+RUN yum -y install \
+        jemalloc-devel \
+        make \
+        gcc \
+        git \
+        openssl-devel \
+        zlib-devel \
+        mysql-devel \
+        redis \
+        sqlite-devel \
+        bzip2
+
+COPY --from=rubybuild $RUBY_PATH $RUBY_PATH
+RUN gem update --system
+CMD [ "irb" ]
+
