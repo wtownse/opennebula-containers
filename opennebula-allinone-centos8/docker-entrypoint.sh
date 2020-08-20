@@ -8,7 +8,7 @@ if [ ! -f /var/lib/one/init.one ]; then
   cp -rf /usr_lib_one/* /usr/lib/one/
   cp -rf /usr_share_one/* /usr/share/one/
   cp -rf /conf/* /etc/one/
-  source ./oned-conf.sh
+  source /ctrl/oned-conf.sh
   echo "initialized" > /var/lib/one/init.one
 fi
 if [ ! -f /var/lib/one/sunstoneinit.one ]; then
@@ -16,7 +16,7 @@ if [ ! -f /var/lib/one/sunstoneinit.one ]; then
   cp -rf /var_lib_one/* /var/lib/one/
   cp -rf /usr_lib_one/* /usr/lib/one/
   cp -rf /conf/* /etc/one/
-  source ./sunstone-conf.sh
+  source /ctrl/sunstone-conf.sh
   echo "initialized" > /var/lib/one/sunstoneinit.one
 fi
 if [ -f /var/lock/one/one ]; then

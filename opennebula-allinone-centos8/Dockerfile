@@ -207,6 +207,12 @@ RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSI
 ARG RUBY_PATH=/usr
 ARG RUBY_VERSION=2.5.5
 ARG RUBY_CONFIGURE_OPTS=--with-jemalloc
+
+# === Stage 3 ===
+# ------------------------------------------------------------------------------
+# Stage 3 - Ruby build
+# ------------------------------------------------------------------------------
+
 FROM base AS rubybuild
 ARG RUBY_PATH
 ARG RUBY_VERSION
@@ -217,9 +223,9 @@ RUN git clone git://github.com/rbenv/ruby-build.git $RUBY_PATH/plugins/ruby-buil
 RUN yum -y install jemalloc-devel
 RUN RUBY_CONFIGURE_OPTS=$RUBY_CONFIGURE_OPTS ruby-build $RUBY_VERSION $RUBY_PATH/
 
-# === Stage 3 ===
+# === Stage 4 ===
 # ------------------------------------------------------------------------------
-# Stage 3 - Ruby build
+# Stage 4 - Ruby base
 # ------------------------------------------------------------------------------
 
 FROM centos:8 AS opennebula-ruby
@@ -244,9 +250,9 @@ COPY --from=rubybuild $RUBY_PATH $RUBY_PATH
 RUN gem update --system
 CMD [ "irb" ]
 
-# === Stage 4 ===
+# === Stage 5 ===
 # ------------------------------------------------------------------------------
-# Stage 4 - Opennebula install
+# Stage 5 - Opennebula install
 # ------------------------------------------------------------------------------
 
 FROM opennebula-ruby
