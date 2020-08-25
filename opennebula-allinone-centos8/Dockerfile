@@ -304,6 +304,9 @@ ffi ffi-rzmq treetop parse-cron curb
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 COPY wait-for-it.sh ./wait-for-it.sh
 COPY ctrl /ctrl
+COPY css.patch /css.patch
+RUN patch -p0 -d/ < /css.patch && rm /css.patch
+
 RUN chmod +x docker-entrypoint.sh && mkdir /var_lib_one && mkdir /conf && cp -au /etc/one /conf/ && mkdir /usr_share_one \
 && cp -rf /usr/share/one/* /usr_share_one/ && mkdir /usr_lib_one && cp -rf /usr/lib/one/* /usr_lib_one/ \
 && cp -rf /var/lib/one/* /var_lib_one/ && cp -rf /var/lib/one/.one /var_lib_one/ && chmod +x wait-for-it.sh \

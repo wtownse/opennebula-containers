@@ -1,0 +1,10 @@
+--- /usr/lib/one/sunstone/public/css/custom.css	2020-08-24 14:24:54.299885670 -0400
++++ /usr/lib/one/sunstone/public/css/custom.css	2020-08-24 16:55:19.905844263 -0400
+@@ -87,6 +87,7 @@
+ #menu #li_support-tab a {
+     border: 1px solid #dfdfdf;
+     background: #fff;
++    display: none;
+ }
+ 
+ /*----LAYOUT---*/
