@@ -6,15 +6,17 @@
 ARG RUBY_PATH=/usr
 ARG RUBY_VERSION=2.5.5
 ARG RUBY_CONFIGURE_OPTS=--with-jemalloc
+ARG ONE_VERSION=5.10.5
 
 FROM centos:8 as builder
 
 ARG RUBY_PATH=/usr
 ARG RUBY_VERSION=2.5.5
 ARG RUBY_CONFIGURE_OPTS=--with-jemalloc
+ARG ONE_VERSION
 
 # Setup environment variables
-ENV VERSION="5.10.4" \
+ENV VERSION="$ONE_VERSION" \
     PKG_VERSION=1 \
     BUILD_DIR="/tmp/build" \
     BUILD_DIR_SPKG="/tmp/spkg" \
@@ -23,13 +25,13 @@ ENV VERSION="5.10.4" \
     GIT_VERSION="not known" \
     DISTRO=centos8 \
     GEMFILE_LOCK='CentOS8' \
-    URL="opennebula-5.10.4.tar.gz" \
-    PKG_VERSION="5.10.4" \
+    URL="opennebula-$ONE_VERSION.tar.gz" \
+    PKG_VERSION="$ONE_VERSION" \
     SPEC="centos8.spec" \
-    PACKAGES_DIR="/packages-5.10.4" \
-    SOURCES_DIR="/packages-5.10.4/sources" \
+    PACKAGES_DIR="/packages-$ONE_VERSION" \
+    SOURCES_DIR="/packages-$ONE_VERSION/sources" \
     SOURCE="$(basename ${URL})" \
-    PACKAGE="opennebula-5.10.4" \
+    PACKAGE="opennebula-$ONE_VERSION" \
     NAME="$(echo ${PACKAGE} | cut -d'-' -f1)" \
     CONTACT="${CONTACT:-Unsupported Community Build}" \
     BASE_NAME="${NAME}-${VERSION}-${PKG_VERSION}" \
@@ -71,11 +73,11 @@ RUN ruby --version \
 
 
 # Download sources
-COPY packages-release-5.10.4.tar.gz ./packages-release-5.10.4.tar.gz
-RUN wget -q -O - "https://github.com/OpenNebula/one/archive/release-5.10.4.tar.gz" | tar -xzf - \
- && mv /one-release-5.10.4 /opennebula-5.10.4 \
-# && wget -q -O - "https://github.com/OpenNebula/packages/archive/release-5.10.4.tar.gz" | tar -xvzf - \
-&& tar xzf /packages-release-5.10.4.tar.gz && mv /packages-release-5.10.4 /packages-5.10.4 \ 
+COPY packages-release-$ONE_VERSION.tar.gz ./packages-release-$ONE_VERSION.tar.gz
+RUN wget -q -O - "https://github.com/OpenNebula/one/archive/release-$ONE_VERSION.tar.gz" | tar -xzf - \
+ && mv /one-release-$ONE_VERSION /opennebula-$ONE_VERSION \
+# && wget -q -O - "https://github.com/OpenNebula/packages/archive/release-$ONE_VERSION.tar.gz" | tar -xvzf - \
+&& tar xzf /packages-release-$ONE_VERSION.tar.gz && mv /packages-release-$ONE_VERSION /packages-$ONE_VERSION \ 
 && gem install ronn
 
 WORKDIR /opennebula-$VERSION
@@ -207,12 +209,6 @@ RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSI
 ARG RUBY_PATH=/usr
 ARG RUBY_VERSION=2.5.5
 ARG RUBY_CONFIGURE_OPTS=--with-jemalloc
-
-# === Stage 3 ===
-# ------------------------------------------------------------------------------
-# Stage 3 - Ruby build
-# ------------------------------------------------------------------------------
-
 FROM base AS rubybuild
 ARG RUBY_PATH
 ARG RUBY_VERSION
@@ -223,9 +219,9 @@ RUN git clone git://github.com/rbenv/ruby-build.git $RUBY_PATH/plugins/ruby-buil
 RUN yum -y install jemalloc-devel
 RUN RUBY_CONFIGURE_OPTS=$RUBY_CONFIGURE_OPTS ruby-build $RUBY_VERSION $RUBY_PATH/
 
-# === Stage 4 ===
+# === Stage 3 ===
 # ------------------------------------------------------------------------------
-# Stage 4 - Ruby base
+# Stage 3 - Ruby build
 # ------------------------------------------------------------------------------
 
 FROM centos:8 AS opennebula-ruby
@@ -250,9 +246,9 @@ COPY --from=rubybuild $RUBY_PATH $RUBY_PATH
 RUN gem update --system
 CMD [ "irb" ]
 
-# === Stage 5 ===
+# === Stage 4 ===
 # ------------------------------------------------------------------------------
-# Stage 5 - Opennebula install
+# Stage 4 - Opennebula install
 # ------------------------------------------------------------------------------
 
 FROM opennebula-ruby
@@ -268,18 +264,18 @@ RUN yum install -y 'dnf-command(config-manager)' \
 RUN mkdir -p /allrpms 
 COPY --from=builder /data/allrpms/* /allrpms/
 RUN yum -y install createrepo && cd /allrpms && createrepo . \ 
-&& echo "[opennebula5.10.4]" > /etc/yum.repos.d/opennebula5.10.4.repo \
-&& echo "name=opennebula5.10.4" >> /etc/yum.repos.d/opennebula5.10.4.repo \
-&& echo "baseurl=file:///allrpms" >> /etc/yum.repos.d/opennebula5.10.4.repo \
-&& echo "metadata_expire=-1" >> /etc/yum.repos.d/opennebula5.10.4.repo \
-&& echo "gpgcheck=0" >> /etc/yum.repos.d/opennebula5.10.4.repo \
-&& echo "enabled=1" >> /etc/yum.repos.d/opennebula5.10.4.repo
+&& echo "[opennebula$ONE_VERSION]" > /etc/yum.repos.d/opennebula$ONE_VERSION.repo \
+&& echo "name=opennebula$ONE_VERSION" >> /etc/yum.repos.d/opennebula$ONE_VERSION.repo \
+&& echo "baseurl=file:///allrpms" >> /etc/yum.repos.d/opennebula$ONE_VERSION.repo \
+&& echo "metadata_expire=-1" >> /etc/yum.repos.d/opennebula$ONE_VERSION.repo \
+&& echo "gpgcheck=0" >> /etc/yum.repos.d/opennebula$ONE_VERSION.repo \
+&& echo "enabled=1" >> /etc/yum.repos.d/opennebula$ONE_VERSION.repo
 RUN yum -y install epel-release && yum -y update && yum -y install opennebula-sunstone \
 opennebula-common* opennebula-rubygem-* opennebula-server opennebula-flow opennebula-gate \
 opennebula-node-kvm centos-release-openstack-train \
-&& yum install -y openvswitch libibverbs
+&& yum install -y openvswitch libibverbs openssh-server
 
-RUN rm /etc/yum.repos.d/opennebula5.10.4.repo \
+RUN rm /etc/yum.repos.d/opennebula$ONE_VERSION.repo \
 && yum -y erase epel-release \
 && yum -y erase createrepo \
 && yum -y erase centos-release-scl \
@@ -288,7 +284,7 @@ RUN rm /etc/yum.repos.d/opennebula5.10.4.repo \
  
 RUN yum install -y gcc-c++ libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
     ruby-devel mysql-devel sqlite-devel pkgconfig python3-scons sqlite-devel xmlrpc-c \
-    make git augeas augeas-libs which m4
+    make git augeas augeas-libs which m4 passwd
 
 RUN ruby --version \
  && gem --version \
@@ -310,8 +306,17 @@ RUN patch -p0 -d/ < /css.patch && rm /css.patch
 RUN chmod +x docker-entrypoint.sh && mkdir /var_lib_one && mkdir /conf && cp -au /etc/one /conf/ && mkdir /usr_share_one \
 && cp -rf /usr/share/one/* /usr_share_one/ && mkdir /usr_lib_one && cp -rf /usr/lib/one/* /usr_lib_one/ \
 && cp -rf /var/lib/one/* /var_lib_one/ && cp -rf /var/lib/one/.one /var_lib_one/ && chmod +x wait-for-it.sh \
-&& chown -R oneadmin /var_lib_one && chown -R oneadmin /usr_lib_one && chown -R oneadmin /usr_share_one && chown -R oneadmin /conf \
-&& chown -R oneadmin /var/lib/one && chown -R oneadmin /etc/one && chmod ugoa+rwx /ctrl/* && chown -R oneadmin:oneadmin /ctrl/
+&& chown -R oneadmin:oneadmin /var_lib_one \
+&& chown -R oneadmin:oneadmin /usr_lib_one \
+&& chown -R oneadmin:oneadmin /usr_share_one \ 
+&& chown -R oneadmin:oneadmin /conf \
+&& chown -R oneadmin:oneadmin /var/lib/one \
+&& chown -R oneadmin:oneadmin /etc/one \
+&& chown -R oneadmin:oneadmin /usr/share/one \
+&& chown -R oneadmin:oneadmin /usr/lib/one \
+&& mkdir -p /var/run/sshd \
+&& chmod ugoa+rwx /ctrl/* \
+&& chown -R oneadmin:oneadmin /ctrl/
 
 # Logging to /dev/stdout, do not daemonize novnc-server
 RUN sed -i 's|^\(SUNSTONE_LOG *=\).*|\1 "/dev/stdout"|' /usr/lib/one/sunstone/sunstone-server.rb \
@@ -323,9 +328,12 @@ RUN sed -i 's|^\(SUNSTONE_LOG *=\).*|\1 "/dev/stdout"|' /usr/lib/one/sunstone/su
 
 RUN cp -au /etc/libvirt /conf \
 && chmod +x /docker-entrypoint.sh \
-&& echo "devpts /dev/pts devpts gid=5,mode=620 0 0" > /etc/fstab
+&& echo "devpts /dev/pts devpts gid=5,mode=620 0 0" > /etc/fstab \
+&& sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd \
+&& ssh-keygen -A \
+&& rm -rf /run/nologin
 
-EXPOSE 9869 5030 2474 29876 5900-6100 16509 2633
+EXPOSE 9869 5030 2474 29876 5900-6100 16509 2633 2022
 USER oneadmin
 
 VOLUME ["/var/lib/libvirt"]
