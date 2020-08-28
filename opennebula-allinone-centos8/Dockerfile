@@ -42,6 +42,12 @@ ENV VERSION="$ONE_VERSION" \
 
 RUN mkdir -p /tmp/{spkg,build,mobuild}
 
+# install optional CA certs
+RUN mkdir -p  /etc/pki/ca-trust/source/anchors/
+RUN update-ca-trust enable
+COPY anchors/* /etc/pki/ca-trust/source/anchors/
+RUN update-ca-trust extract
+
 # Install build dependencies
 
 RUN yum install -y epel-release
@@ -155,7 +161,7 @@ RUN cd "${BUILD_DIR_SPKG}" \
 RUN sed -i 's/    %define with_oca_java_prebuilt 1/    %define with_oca_java_prebuilt 0\n    %define with_oca_java 0/g' ${BUILD_DIR_SPKG}/${SPEC}
 RUN rpmbuild -ba "${BUILD_DIR_SPKG}/${SPEC}" 
 #&& yum install -y $(cat $BUILD_DIR_SPKG/$SPEC | grep BuildRequires | awk '{print $2}')
-RUN mkdir -p /data/allrpms && find / -path /proc -prune -o -iname "opennebula*.rpm" -exec mv {} /data/allrpms \;
+RUN mkdir -p /data/allrpms && find /tmp -iname "opennebula*.rpm" -exec mv {} /data/allrpms \;
 
 # === Stage 2 ===
 # ------------------------------------------------------------------------------
@@ -214,7 +220,7 @@ ARG RUBY_PATH
 ARG RUBY_VERSION
 ARG RUBY_CONFIGURE_OPTS
 RUN echo "RUBY_VERSION:${RUBY_VERSION} RUBY_PATH:${RUBY_PATH} RUBY_CONFIGURE_OPTS:${RUBY_CONFIGURE_OPTS}"
-RUN git clone git://github.com/rbenv/ruby-build.git $RUBY_PATH/plugins/ruby-build \
+RUN git clone https://github.com/rbenv/ruby-build.git $RUBY_PATH/plugins/ruby-build \
 &&  $RUBY_PATH/plugins/ruby-build/install.sh
 RUN yum -y install jemalloc-devel
 RUN RUBY_CONFIGURE_OPTS=$RUBY_CONFIGURE_OPTS ruby-build $RUBY_VERSION $RUBY_PATH/

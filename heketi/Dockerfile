@@ -13,6 +13,13 @@ ENV PATH=$GOPATH/bin:$PATH
 ENV HEKETI_REPO="https://github.com/heketi/heketi.git"
 ENV HEKETI_BRANCH="master"
 ENV HEKETI_TAG="v10.0.0"
+
+# install optional CA certs
+RUN mkdir -p  /etc/pki/ca-trust/source/anchors/
+RUN update-ca-trust enable
+COPY anchors/* /etc/pki/ca-trust/source/anchors/
+RUN update-ca-trust extract
+
 # install dependencies, build and cleanup
 RUN mkdir $BUILD_HOME $GOPATH && \
     dnf -y install glide golang git make mercurial findutils && \
