@@ -3,6 +3,7 @@ set -xe
 
 if [ ! -f /etc/libvirt/init.one ]; then
   cp -rf /conf/libvirt/* /etc/libvirt/
+  UUID=`uuidgen` && sed -i "s/#host_uuid = \"00000000-0000-0000-0000-000000000000\"/host_uuid = \"$UUID\"/g" /etc/libvirt/libvirtd.conf
   echo "initialized" > /etc/libvirt/init.one
 fi
 
