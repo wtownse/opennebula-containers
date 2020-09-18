@@ -10,10 +10,17 @@ ARG RUBY_CONFIGURE_OPTS=--with-jemalloc
 
 FROM centos:8 as base
 
+# install optional CA certs
+RUN mkdir -p  /etc/pki/ca-trust/source/anchors/
+RUN update-ca-trust enable
+COPY anchors/* /etc/pki/ca-trust/source/anchors/
+RUN update-ca-trust extract
+
 RUN dnf install -y epel-release && dnf install -y 'dnf-command(config-manager)' \
 && dnf config-manager --set-enabled PowerTools
 
-RUN yum install -y openssl-devel readline-devel zlib-devel \
+RUN rpm -ivh https://dev.mysql.com/get/mysql80-community-release-el8-1.noarch.rpm \ 
+&& yum install -y openssl-devel readline-devel zlib-devel \
     wget curl git vim bzip2 tar ImageMagick ImageMagick-devel \
     libffi-devel mysql mysql-devel libxslt-devel redis \
     python3 \
@@ -106,6 +113,12 @@ FROM opennebula-ruby
 ARG ONE_VERSION
 ARG BUILD_DIR="/tmp/build"
 # Install build dependencies
+
+# install optional CA certs
+RUN mkdir -p  /etc/pki/ca-trust/source/anchors/
+RUN update-ca-trust enable
+COPY anchors/* /etc/pki/ca-trust/source/anchors/
+RUN update-ca-trust extract
 
 RUN yum install -y epel-release
 RUN yum install -y 'dnf-command(config-manager)' \
