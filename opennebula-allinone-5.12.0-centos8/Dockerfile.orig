@@ -1,0 +1,108 @@
+# === stage 1 ===
+# ------------------------------------------------------------------------------
+# Stage 1 - Opennebula rpm build
+# ------------------------------------------------------------------------------
+
+ARG RUBY_PATH=/usr
+ARG RUBY_VERSION=2.5.5
+ARG RUBY_CONFIGURE_OPTS=--with-jemalloc
+ARG ONE_VERSION=5.12.0.1
+ARG GLUSTER_VERSION=8.0
+ARG GLUSTER_RELEASE=8
+
+FROM centos:8
+
+ARG RUBY_PATH=/usr
+ARG RUBY_VERSION=2.5.5
+ARG RUBY_CONFIGURE_OPTS=--with-jemalloc
+ARG ONE_VERSION
+
+# Setup environment variables
+ENV VERSION="$ONE_VERSION" \
+    PKG_VERSION=1 \
+    BUILD_DIR="/tmp/build" \
+    BUILD_DIR_SPKG="/tmp/spkg" \
+    MOCK_DIR_GEMS="/tmp/mobuild" \
+    CONTACT="Unsupported Community Build" \
+    GIT_VERSION="not known" \
+    DISTRO=centos8 \
+    GEMFILE_LOCK='CentOS8' \
+    URL="opennebula-$ONE_VERSION.tar.gz" \
+    #PKG_VERSION="$ONE_VERSION" \
+    SPEC="centos8.spec" \
+    PACKAGES_DIR="/packages-$ONE_VERSION" \
+    SOURCES_DIR="/packages-$ONE_VERSION/sources" \
+    SOURCE="$(basename ${URL})" \
+    PACKAGE="opennebula-$ONE_VERSION" \
+    NAME="$(echo ${PACKAGE} | cut -d'-' -f1)" \
+    CONTACT="${CONTACT:-Unsupported Community Build}" \
+    BASE_NAME="${NAME}-${VERSION}-${PKG_VERSION}" \
+    GEMS_RELEASE="${VERSION}_${PKG_VERSION}.${DIST_TAG}" \
+    GIT_VERSION="${GIT_VERSION:-not known}" \
+    RUBY_VERSION=${RUBY_VERSION}
+    #DATE=$(date +'%a %b %d %Y')
+
+RUN mkdir -p /tmp/{spkg,build,mobuild}
+
+# Install build dependencies
+
+RUN yum install -y epel-release
+RUN yum install -y 'dnf-command(config-manager)' \
+ && yum config-manager --set-enabled PowerTools
+RUN yum update -y \
+ && yum install -y npm rpm-build gcc-c++ libcurl-devel libxml2-devel xmlrpc-c-devel openssl-devel \
+    mysql-devel sqlite-devel openssh pkgconfig python3-scons sqlite-devel xmlrpc-c java-1.8.0-openjdk-devel \
+    createrepo wget make npm git augeas augeas-libs which m4 rpm-build ruby ruby-devel \
+    patch readline readline-devel zlib zlib-devel \
+    libyaml-devel libffi-devel openssl-devel libpq-devel \
+    bzip2 autoconf automake libtool bison python2 python2-devel \
+    systemd systemd-devel libvncserver-devel gnutls-devel libjpeg-turbo-devel \
+    python3-rpm-macros libnsl2-devel
+
+RUN echo "install: --no-document" > /etc/gemrc
+
+
+# Workaround tty check, see https://github.com/hashicorp/vagrant/issues/1673#issuecomment-26650102
+RUN sed -i 's/^mesg n/tty -s \&\& mesg n/g' /root/.bash_profile
+
+# Switch to a bash login shell
+SHELL ["/bin/bash", "-l", "-c"]
+
+# Install Ruby and initialise bundler
+RUN ruby --version \
+ && gem --version \
+ && gem install bundler
+
+RUN wget -q -O - "https://github.com/OpenNebula/one/archive/release-$ONE_VERSION.tar.gz" | tar -xzf - \
+ && mv /one-release-$ONE_VERSION /opennebula-$ONE_VERSION
+
+COPY build_opennebula.sh /build_opennebula.sh
+COPY xmlrpc-c.tar.gz /xmlrpc-c.tar.gz
+COPY xml_parse_huge.patch /xml_parse_huge.patch
+
+RUN cd / && tar xvzf xmlrpc-c.tar.gz && cd xmlrpc-c && patch -p1 < /xml_parse_huge.patch && ./configure --enable-libxml2-backend \
+&& echo 'MUST_BUILD_SHLIB = NO'   >> config.mk \
+&& echo 'MUST_BUILD_SHLIBLE = NO' >> config.mk \
+&& echo 'SHARED_LIB_TYPE = NONE'  >> config.mk \
+&& make && make install \
+&& cd /opennebula-$ONE_VERSION
+
+RUN set -e -o pipefail \
+&& set -x \
+&& BUILD_DIR=/opennebula-$ONE_VERSION \
+&& export CXXFLAGS=${CXXFLAGS:--fPIC} \
+#export CFLAGS=${CFLAGS:-Wno-error=format-security} \
+&& echo '***** Compilation Flags' >&2 \
+&& echo "- CFLAGS='${CFLAGS}'" >&2 \
+&& echo "- CXXFLAGS='${CXXFLAGS}'" >&2 \
+&& echo "- CPPFLAGS='${CPPFLAGS}'" >&2 \
+&& echo "- LDFLAGS='${LDFLAGS}'" >&2 \
+&& export PATH=$PWD/install/bin:$PATH \
+&& cd "${BUILD_DIR}" \
+&& "${SCONS:-scons-3}" -j2 \
+    mysql=yes \
+    postgresql=yes \
+    xmlrpc="${BUILD_DIR}/../xmlrpc-c/install" \
+    new_xmlrpc=yes \
+    "$@"
+RUN opennebula-$ONE_VERSION/install.sh

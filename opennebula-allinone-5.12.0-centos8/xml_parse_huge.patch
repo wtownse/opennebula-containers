@@ -1,0 +1,12 @@
+--- xmlrpc-c.orig/src/xmlrpc_libxml2.c	2015-02-20 15:22:57.000000000 +0100
++++ xmlrpc-c/src/xmlrpc_libxml2.c	2015-04-06 20:25:20.369495050 +0200
+@@ -444,6 +444,9 @@
+ 
+     parserP = xmlCreatePushParserCtxt((xmlSAXHandler *)&saxHandler, &context,
+                                       NULL, 0, NULL);
++
++    xmlCtxtUseOptions (parserP, XML_PARSE_HUGE);
++
+     if (!parserP)
+         xmlrpc_faultf(envP, "Failed to create libxml2 parser.");
+     else {
